@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
 library(testthat)
-library(lab4package)
+library(bonuslabpackage)
 
-test_check("lab4package")
+test_check("bonuslabpackage")
