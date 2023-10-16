@@ -1,0 +1,96 @@
+---
+title: "Multiple linear regression with ordinary least squares"
+author: "Duc Tran and William Wiik"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    fig_caption: yes
+    toc: yes
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{Multiple linear regression with ordinary least squares}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# Introduction
+
+This vignette provides an overview and usage examples for the `lab4` package, which implements multiple linear regression using ordinary least squares. The package includes a reference class `linreg` with methods to fit a linear regression model, access model statistics, and visualize the results.
+
+
+# Installation
+
+To install the `linreg` package, you can use the following R code:
+
+
+```{r, eval=FALSE}
+devtools::install_github("https://github.com/ductr388/lab4")
+```
+
+# Getting Started
+
+To begin, we need to load the `lab4package` package and create an instance of the linreg reference class that takes two arguments "formula" and "data". For the inputs, "formula needs to be a *formula*-class and "data" needs to be a *data frame*-class with columns spelled the same as in the "formula".  
+We will demonstrate the basic usage of the package with a sample dataset `iris` where *Petal.Length* is the response variable and *Sepal.Width* & *Sepal.Length* are the dependent variables.
+
+```{r}
+library(lab4package)
+model <- linreg$new(formula = Petal.Length ~ Sepal.Width + Sepal.Length, data = iris)
+```
+
+The linear regression is saved in `model` which will be used throughout the vignette.
+
+
+# Accessing Model Information
+
+You can access various information about the model using the methods provided by the linreg class. For example, to access the model coefficients you can use:
+
+```{r}
+model$coef()
+```
+If you also want to include the formula that the model is using you can use:
+
+```{r}
+model$print()
+```
+
+
+If you want to print a summary of the model that includes the estimated coefficients, their standard errors, t-values, and p-values you can use `summary()`. Significance codes (\*\*\*, \*\*, \*) are used to indicate the level of significance for each coefficient.
+
+```{r}
+model$summary()
+```
+
+
+You can use the `pred()` method to obtain the predicted values from the regression model. These values represent the model's predictions for each observation in the dataset. 
+
+```{r}
+head(model$pred())
+```
+
+You can also use `resid()` method to access the residuals from the regression model. Residuals represent the differences between the observed values and the predicted values.
+
+
+```{r, fig.align='center', fig.width=6, fig.height=4}
+head(model$resid())
+```
+  
+# Visualizing the Results
+
+The `lab4package` package includes a plot method to visualize the results of the regression model. This method generates two plots: Residuals vs. Fitted values and Scale-Location plot. 
+
+```{r, fig.align='center', fig.width=6, fig.height=4}
+model$plot()
+```
+
+
+
+
+
+
+
+
+
+
+
+

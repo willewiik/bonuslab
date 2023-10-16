@@ -1,0 +1,15 @@
+Package: bonuslabpackage
+Type: Package
+Title: Ridge regression and dplyr
+Version: 1.0
+Authors@R: c(
+    person("Duc", "Tran", email = "ductr388@student.liu.se", role = c("cre","aut")),
+    person("William", "Wiik", email = "wilwi856@student.liu.se", role = "aut"))
+Description: Fit a ridge regression with ordinary least square and returns a reference class "linreg".
+Encoding: UTF-8
+License: GPL-3 + file LICENSE
+Depends: R (>= 3.5.0), methods
+Suggests: testthat (>= 3.0.0), ggplot2, knitr, rmarkdown
+VignetteBuilder: knitr, rmarkdown
+Config/testthat/edition: 3
+RoxygenNote: 7.2.3
