@@ -232,3 +232,73 @@ linreg$methods(plot = function(){
 })
 
 
+#' Plot function for linreg object.
+#'
+#' Produces a residual vs fitted plot and a scale-location plot.
+#' The scale-location plot shows square roof of standardized residuals vs fitted values. 
+#'
+#' @name linreg_visualize_airport_delays
+#' @return Two different ggplot objects. 
+#' 
+linreg$methods(visualize_airport_delays = function(){
+  
+  library(nycflights13)
+  library(dplyr)
+  library(ggplot2)
+  
+  flights <- nycflights13::flights
+  airports <- nycflights13::airports
+  
+  
+  # flights[flights$dest == "LGA",]
+  
+  # airport_delays_arr <- flights %>%
+  #   group_by(dest) %>%
+  #   summarise(mean_delay = mean(arr_delay, na.rm = TRUE)) %>%
+  #   filter(!is.na(mean_delay))
+  # 
+  # airport_delays_dep <- flights %>%
+  #   group_by(origin) %>%
+  #   summarise(mean_delay = mean(dep_delay, na.rm = TRUE))
+  # 
+  
+  
+  airport_delays <- flights %>%
+    group_by(airport = coalesce(dest, origin)) %>%
+    summarise(
+      mean_delay = mean(coalesce(arr_delay, dep_delay), na.rm = TRUE)
+    ) %>%
+    filter(!is.na(mean_delay)) %>%
+    bind_rows(
+      flights %>%
+        group_by(airport = origin) %>%
+        summarise(
+          mean_delay = mean(dep_delay, na.rm = TRUE)
+        )
+    ) %>% 
+    inner_join(airports, by = c("airport" = "faa")) %>% 
+    select(mean_delay, name, lat, lon)
+  
+  
+  ggplot(airport_delays, aes(x = lon, y = lat, color = mean_delay)) +
+    geom_point(size = 3) +
+    labs(x = "Longitude", y = "Latitude", title = "Mean Delay of Flights by Airport") +
+    theme_bw()
+  
+})
+
+
+
+# 
+# # predict
+# flights <- nycflights13::flights
+# weather <- nycflights13::weather
+# 
+# # nice variables
+# flights <- flights %>%  select(origin, year, month, day, hour, dep_delay, arr_delay, distance)
+# weather <- weather %>%  select(origin, year, month, day, hour, temp, wind_speed)
+# 
+
+
+
+
