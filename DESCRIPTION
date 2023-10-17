@@ -9,7 +9,7 @@ Description: Contains two RC-classes, "linreg" that fits a linear regression and
 Encoding: UTF-8
 License: GPL-3 + file LICENSE
 Depends: R (>= 3.5.0), methods
-Suggests: testthat (>= 3.0.0), ggplot2, knitr, rmarkdown, nycflights13, dplyr, MASS
+Suggests: testthat (>= 3.0.0), ggplot2, knitr, rmarkdown, nycflights13, dplyr, MASS, caret, mlbench
 VignetteBuilder: knitr, rmarkdown
 Config/testthat/edition: 3
 RoxygenNote: 7.2.3

@@ -1,5 +1,5 @@
 ---
-title: "Multiple linear regression with ordinary least squares"
+title: "How how to do a simple prediction problem using ridgereg() function"
 author: "Duc Tran and William Wiik"
 date: "`r Sys.Date()`"
 output:
@@ -8,7 +8,7 @@ output:
     toc: yes
     toc_depth: 3
 vignette: >
-  %\VignetteIndexEntry{Multiple linear regression with ordinary least squares}
+  %\VignetteIndexEntry{How how to do a simple prediction problem using ridgereg() function}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,77 +16,228 @@ vignette: >
 
 # Introduction
 
-This vignette provides an overview and usage examples for the `lab4` package, which implements multiple linear regression using ordinary least squares. The package includes a reference class `linreg` with methods to fit a linear regression model, access model statistics, and visualize the results.
+This vignette show you how to do a simple prediction problem using 
+`ridgereg()` function.
+We are going to use the `caretc` package and `ridgereg()` function to create a predictive model for the BostonHousing data found in the `mlbench` package.
+
+# 1.2
+
+## 1
+
+First we divide the BostonHousing data into a test and training dataset using the
+`caret` package (with the proportions 25% amd 75%).
 
 
-# Installation
-
-To install the `linreg` package, you can use the following R code:
-
-
-<!-- ```{r, eval=FALSE} -->
-<!-- devtools::install_github("https://github.com/ductr388/lab4") -->
-<!-- ``` -->
-
-<!-- # Getting Started -->
-
-<!-- To begin, we need to load the `lab4package` package and create an instance of the linreg reference class that takes two arguments "formula" and "data". For the inputs, "formula needs to be a *formula*-class and "data" needs to be a *data frame*-class with columns spelled the same as in the "formula".   -->
-<!-- We will demonstrate the basic usage of the package with a sample dataset `iris` where *Petal.Length* is the response variable and *Sepal.Width* & *Sepal.Length* are the dependent variables. -->
-
-<!-- ```{r} -->
-<!-- library(lab4package) -->
-<!-- model <- linreg$new(formula = Petal.Length ~ Sepal.Width + Sepal.Length, data = iris) -->
-<!-- ``` -->
-
-<!-- The linear regression is saved in `model` which will be used throughout the vignette. -->
+```{r}
+library(caret)
+library(mlbench)
+library(dplyr)
 
 
-<!-- # Accessing Model Information -->
+data(BostonHousing)
 
-<!-- You can access various information about the model using the methods provided by the linreg class. For example, to access the model coefficients you can use: -->
+training_indices <- createDataPartition(BostonHousing$crim, p = 0.75, list = FALSE)
 
-<!-- ```{r} -->
-<!-- model$coef() -->
-<!-- ``` -->
-<!-- If you also want to include the formula that the model is using you can use: -->
-
-<!-- ```{r} -->
-<!-- model$print() -->
-<!-- ``` -->
+train_set <- BostonHousing[training_indices, ]
+test_set <- BostonHousing[-training_indices, ]
 
 
-<!-- If you want to print a summary of the model that includes the estimated coefficients, their standard errors, t-values, and p-values you can use `summary()`. Significance codes (\*\*\*, \*\*, \*) are used to indicate the level of significance for each coefficient. -->
-
-<!-- ```{r} -->
-<!-- model$summary() -->
-<!-- ``` -->
+```
 
 
-<!-- You can use the `pred()` method to obtain the predicted values from the regression model. These values represent the model's predictions for each observation in the dataset.  -->
+## 2
 
-<!-- ```{r} -->
-<!-- head(model$pred()) -->
-<!-- ``` -->
-
-<!-- You can also use `resid()` method to access the residuals from the regression model. Residuals represent the differences between the observed values and the predicted values. -->
+We fit a linear regression model and a fit a linear regression model with forward selection of covariates on the training dataset.
 
 
-<!-- ```{r, fig.align='center', fig.width=6, fig.height=4} -->
-<!-- head(model$resid()) -->
-<!-- ``` -->
+```{r}
 
-<!-- # Visualizing the Results -->
+# Get the vector of predictor variable names
+predictor_vars <- names(train_set)[!names(train_set) %in% "crim"]
 
-<!-- The `lab4package` package includes a plot method to visualize the results of the regression model. This method generates two plots: Residuals vs. Fitted values and Scale-Location plot.  -->
 
-<!-- ```{r, fig.align='center', fig.width=6, fig.height=4} -->
-<!-- model$plot() -->
-<!-- ``` -->
+# Initialize a list to store the models
+models <- list()
+
+# Iterate through different numbers of covariates (0 to n)
+for (i in 0:length(predictor_vars)) {
+  # Subset the predictors based on the current iteration
+  
+  if(i == 0) { # Use only intercept
+    
+    # using lm function when it is only intercept because caret cant handle that
+    model <- lm("crim ~ 1", data = train_set) 
+  
+    
+  } else {
+    
+     predictors_subset <- predictor_vars[0:i]
+     formula <- as.formula(paste("crim ~", paste(predictors_subset, collapse = "+")))
+     # Fit the model using caret::train
+     model <- train(formula, data = train_set, method = "lm")
+     
+  }
+  
+  # Store the model
+  models[[i+1]] <- model
+}
+
+# Find the model with the lowest AIC
+#lowest_aic_model <- models[[which.min(sapply(models, function(model) AIC(model$finalModel)))]]
+
+lowest_aic_model <- models[[14]]
 
 
 
+```
+
+## 3
+
+Now we evaluate the performance of this model on the training dataset.
+
+```{r}
 
 
+
+# Predict using the selected model on the training dataset
+train_predictions <- predict(lowest_aic_model, newdata = train_set)
+
+
+mae <- mean(abs(train_set$crim - train_predictions))
+mse <- mean((train_set$crim - train_predictions)^2)
+rmse <- sqrt(mse)
+rsquared <- cor(train_set$crim, train_predictions)^2
+
+
+# Display the performance metrics
+cat("Mean Absolute Error (MAE):", mae, "\n")
+cat("Mean Squared Error (MSE):", mse, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("R-squared (R²):", rsquared, "\n")
+
+```
+
+## 4
+
+Now we are going to a fit a ridge regression model using `ridgereg()` function to the training dataset for different values of λ.
+
+```{r}
+
+
+```
+
+## 5
+
+```{r}
+
+
+```
+
+## 6
+
+```{r}
+
+
+```
+
+
+
+
+
+# 1.2.1 Predictive modeling of flight delays using `ridgereg()`
+
+## 1
+
+We read in the weather dataset and the flights dataset from the `nycflights13` package and select
+variables we believe to have a predictive value.
+
+```{r}
+library(nycflights13)
+ 
+flights <- nycflights13::flights
+weather <- nycflights13::weather
+
+# Nice variables
+flights <- flights %>%  select(origin, year, month, day, hour,
+                               dep_delay, arr_delay, distance)
+
+weather <- weather %>%  select(origin, year, month,
+                               day, hour, temp, wind_speed)
+  
+```
+
+
+## 2
+
+We add extra weather data (temp and wind_speed) from the weather dataset and create multiplicative interaction effects of temp and wind_speed.
+
+We also make the assumption that the response variable is arrival delay.
+
+
+```{r}
+
+# merge flights with weather
+merged_data <- flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>% 
+  mutate(interactive_temp_wind = temp * wind_speed) %>% 
+  na.omit() # remove Na's
+
+
+```
+
+
+## 3
+
+We use the `caret` package to divide the flight dataset into three sets: test, train and validation (with the proportions 5%, 80% and 15%).
+
+
+```{r}
+
+# Set the seed for reproducibility
+set.seed(123)
+
+train_indices <- createDataPartition(merged_data$arr_delay, p = 0.80, list = FALSE)
+train_set <- merged_data[train_indices, ]
+
+test_val_set <- merged_data[-train_indices, ]
+
+
+# 5% of 20% is 25%, thats why p = 0.25
+test_indices <- createDataPartition(test_val_set$arr_delay, p = 0.25, list = FALSE)
+
+test_set <- test_val_set[test_indices, ]
+validation_set <- test_val_set[-test_indices, ]
+
+
+```
+
+
+
+## 4
+
+We train ridge regressions models for different values of λ and evaluate the root mean squared error.
+
+```{r}
+
+
+  
+```
+
+We found that the optimal value for λ is XXX.
+
+
+## 5
+
+We predict the test set here.
+
+```{r}
+
+
+  
+```
+
+
+The RMSE of ours predicted model is XXX.
 
 
 
