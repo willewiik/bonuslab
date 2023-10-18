@@ -52,6 +52,8 @@ ridgereg <-
               )
   )
 
+
+
 # X <- as.matrix(stats::model.matrix(Petal.Length~Sepal.Length, iris)[,-1])
 # y <- iris$Petal.Length
 # mean_X <- apply(X, 2, mean)
@@ -66,7 +68,7 @@ ridgereg <-
 # 
 # a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
 # b <- lm(Petal.Length~Sepal.Width+Sepal.Length, iris)
-# ridge <- lm.ridge(Petal.Length~Sepal.Width+Sepal.Length, iris, lambda=0)
+# ridge <- MASS::lm.ridge(Petal.Length~Sepal.Width+Sepal.Length, iris, lambda=0)
 
 #' Coefficients for ridgereg object.
 #'
@@ -110,13 +112,24 @@ ridgereg$methods(
 ridgereg$methods(
   predict = function(data){
     # Scale the new data with the models mean and sd
+    data <- as.matrix(data)
     for(i in 1:length(mean_X)){
       data[, i] <- (data[, i] - mean_X[i]) / sd_X[i]
     }
-    fitted_values <<- as.vector(X %*% coef + mean_y)
+    fitted_values <<- as.vector(data %*% as.matrix(coefficients) + mean_y)
     return(fitted_values)
   }
 )
+
+
+
+# Test predict 
+# a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
+# data_iris <- iris[1:10, c(2,1)]
+# a$predict(data_iris)- a$fitted_values[1:10]
+
+
+
 
 
 #' Show function for ridgereg object.
@@ -140,4 +153,8 @@ ridgereg$methods(
         sep="")
     base::print(round(coef_print,3))
   })
+
+
+
+
 
