@@ -32,6 +32,7 @@ First we divide the BostonHousing data into a test and training dataset using th
 library(caret)
 library(mlbench)
 library(dplyr)
+library(bonuslabpackage)
 
 
 data(BostonHousing)
