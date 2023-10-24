@@ -103,7 +103,31 @@ for(i in 1:length(models)) {
 lowest_aic_model <- models[[which.min(AIC_vec)]]
 
 
+# Modell med bara intercept
+model_intercept <- lm("crim ~ 1", data = train_set) 
+# Koden neda är enligt caret, men det funkar ej att hitta AIC. Så kör koden ovan.
+# model_intercept <- train(crim ~ ., data = train_set, 
+#                          method = "lm")
 
+# Forward selection, hittar att 2 variabler är bäst.
+# Algorithmen testar att lägga olika variabler först i modellen, 
+# en olika som andra variabel, osv. 
+test_forward <- train(crim ~ ., data = train_set, 
+                      method = "leapForward")
+
+# nvmax visar att max 2 variabler var bäst. 
+test_forward
+
+# Visar att den bästa modellen är att lägga till "rad" först och sen "lstat"
+summary(test_forward)
+
+# Skattar modellen enligt forward selection.
+forward_mod <- lm(crim ~ rad + lstat, train_set, method="lm")
+
+# Om vi kolla på AIC så är den lägre för modellen med "rad + lstat" jämfört med 14 variabler.
+AIC(model_intercept)
+AIC_vec
+AIC(forward_mod)
 
 ```
 
@@ -139,20 +163,47 @@ Now we are going to a fit a ridge regression model using `ridgereg()` function t
 ```{r}
 lambda <- c(1, 5, 10, 50, 200)
 formula <- as.formula(paste("crim ~", paste(predictors_subset, collapse = "+")))
-
+# formula <- as.formula("crim ~ rad + lstat")
 ridge_1 <- ridgereg(formula, train_set, lambda=1)
 ridge_5 <- ridgereg(formula, train_set, lambda=5)
 ridge_10 <- ridgereg(formula, train_set, lambda=10)
 ridge_50 <- ridgereg(formula, train_set, lambda=50)
 ridge_200 <- ridgereg(formula, train_set, lambda=200)
-
+ridge_10000 <- ridgereg(formula, train_set, lambda=10000)
 ```
 
 ## 5
 
 ```{r}
+# Divide the testdata (382 observations) into 10 different groups by indices.
+k_fold_index <- 
+  c(rep(1,38), rep(2,38), rep(3,38), rep(4,38), rep(5,38),
+    rep(6,38), rep(7,38), rep(8,38), rep(9,39), rep(10,39))
+formula <- as.formula(crim~rad+lstat)
 
+# 10-fold cross validation with different lambda values evaluating with RMSE.
+ten_fold_ridgereg <- function(k_fold_index,train_set,lambda){
+  RMSE <- 1
+  for(i in 1:10){
+    index <- k_fold_index == i
+    # 9 out of 10 sets are used to train the model
+    train_data <- train_set[!index,]
+    # 1 out of 10 set is used to evaluate the fit of the model
+    test_data <- train_set[index, ]
+    model <- ridgereg(formula, train_data, lambda=lambda)
+    # 9 and 13 are variable "rad" and "lstat".
+    RMSE[i] <- sqrt(sum((test_data$crim - model$predict(test_data[,c(9,13)]))^2))
+  }
+  mean_RMSE <- mean(RMSE)
+  return(mean_RMSE)
+}
 
+ten_fold_ridgereg(k_fold_index,train_set,1)
+ten_fold_ridgereg(k_fold_index,train_set,5)
+ten_fold_ridgereg(k_fold_index,train_set,10)
+ten_fold_ridgereg(k_fold_index,train_set,50)
+ten_fold_ridgereg(k_fold_index,train_set,200)
+ten_fold_ridgereg(k_fold_index,train_set,10000)
 ```
 
 ## 6
