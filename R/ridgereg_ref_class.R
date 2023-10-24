@@ -52,6 +52,69 @@ ridgereg <-
               )
   )
 
+#' Predict function for ridgereg object.
+#'
+#' Predict new values of observation with the existing ridge regression model.
+#'
+#' @name ridgereg_predict
+#' @return A vector of the predicted values.
+#' 
+ridgereg$methods(
+  predict = function(data){
+    if(!is.data.frame(data)){
+      stop("Data needs to be a data frame.")
+    }
+    # formula contains dependent variable and data does not.
+    if(! (length(colnames(data)) == (length(all.vars(formula))-1) )){
+      stop("The data used to predict does not match the data the model used.")
+    }
+    if(!all (colnames(data) %in% all.vars(formula) ) ){
+      stop("The column names of the data for prediction does not match the data
+           used to estimate the model.")
+    }
+      
+     
+    formula1 <- all.vars(formula)[-1]
+    formula1 <- paste(formula1, collapse=" + ")
+    formula1 <- paste("~", formula1, sep="")
+    data <- stats::model.matrix(as.formula(formula1), data)[,-1]
+
+    # Scale the new data with the models mean and sd
+    data <- as.matrix(data)
+    for(i in 1:length(mean_X)){
+      data[, i] <- (data[, i] - mean_X[i]) / sd_X[i]
+    }
+    coef_temp <- coefficients/sd_X
+    intercept <- mean_y - sum(coef_temp*mean_X) 
+    
+    fitted_values <<- as.vector(data %*% as.matrix(coefficients) + mean_y)
+    return(fitted_values)
+  }
+)
+
+
+# Test predict 
+# a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
+# data_iris <- iris[1:10, c(1,2)]
+# a$predict(data_iris)
+# 
+# 
+# formula1 <- all.vars(a$formula)[-1]
+# formula1 <- paste(formula1, collapse=" + ")
+# formula1 <- paste("~", formula1, sep="")
+# data <- stats::model.matrix(as.formula(formula1), data_iris)[,-1]
+# 
+# mean_X <-  a$mean_X
+# sd_X <- a$sd_X
+# coef_temp <- a$coefficients/sd_X
+# intercept <- a$mean_y - sum(coef_temp*mean_X) 
+# as.vector(data %*% as.matrix(a$coefficients))
+# 
+# 
+# 
+# a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
+
+
 # X <- as.matrix(stats::model.matrix(Petal.Length~Species, iris)[,-1])
 # y <- iris$Petal.Length
 # mean_X <- apply(X, 2, mean)
@@ -100,32 +163,9 @@ ridgereg$methods(
     base::print(round(coef_print,3))
   })
 
-#' Predict function for ridgereg object.
-#'
-#' Predict new values of observation with the existing ridge regression model.
-#'
-#' @name ridgereg_predict
-#' @return A vector of the predicted values.
-#' 
-ridgereg$methods(
-  predict = function(data){
-    # Scale the new data with the models mean and sd
-    data <- as.matrix(data)
-    for(i in 1:length(mean_X)){
-      data[, i] <- (data[, i] - mean_X[i]) / sd_X[i]
-    }
-    fitted_values <<- as.vector(data %*% as.matrix(coefficients) + mean_y)
-    return(fitted_values)
-  }
-)
-
-# Test predict 
-# a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
-# data_iris <- iris[1:10, c(2,1)]
-# a$predict(data_iris)- a$fitted_values[1:10]
 
 
-#a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
+
 
 #' Show function for ridgereg object.
 #'
@@ -151,5 +191,22 @@ ridgereg$methods(
 
 
 
-a <- ridgereg(Petal.Length~Species, iris, lambda=5)
-b <- lm.ridge(Petal.Length~Species, iris, lambda=5)
+# Old
+# ridgereg$methods(
+#   show = function(){
+#     coef_temp <- coefficients/sd_X
+#     intercept <- mean_y - sum(coef_temp*mean_X) 
+#     coef_print <- c(intercept, coef_temp)
+#     names(coef_print) <- coef_names
+#     cat("Call:\n", 
+#         "linreg(formula = ", format(formula),
+#         ", data = ", format(input_arg_data), ")\n",
+#         "\n",
+#         "Coefficients:\n",
+#         sep="")
+#     base::print(round(coef_print,3))
+#   })
+
+
+# a <- ridgereg(Petal.Length~Species, iris, lambda=5)
+# b <- lm.ridge(Petal.Length~Species, iris, lambda=5)
