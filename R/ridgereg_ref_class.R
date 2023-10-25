@@ -45,9 +45,6 @@ ridgereg <-
                   coefficients <<- as.vector(coef)
                   lambda <<- lambda
                   fitted_values <<- as.vector(X %*% coef + mean_y)
-                  # coef_temp <- coef/sd_X
-                  # intercept <- mean_y - sum(coef_temp*mean_X) 
-                  # names(coefficients) <<- coef_names
                 }
               )
   )
@@ -92,44 +89,6 @@ ridgereg$methods(
   }
 )
 
-
-# Test predict 
-# a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
-# data_iris <- iris[1:10, c(1,2)]
-# a$predict(data_iris)
-# 
-# 
-# formula1 <- all.vars(a$formula)[-1]
-# formula1 <- paste(formula1, collapse=" + ")
-# formula1 <- paste("~", formula1, sep="")
-# data <- stats::model.matrix(as.formula(formula1), data_iris)[,-1]
-# 
-# mean_X <-  a$mean_X
-# sd_X <- a$sd_X
-# coef_temp <- a$coefficients/sd_X
-# intercept <- a$mean_y - sum(coef_temp*mean_X) 
-# as.vector(data %*% as.matrix(a$coefficients))
-# 
-# 
-# 
-# a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
-
-
-# X <- as.matrix(stats::model.matrix(Petal.Length~Species, iris)[,-1])
-# y <- iris$Petal.Length
-# mean_X <- apply(X, 2, mean)
-# sd_X <<- apply(X, 2, sd)
-# for(i in 1:length(mean_X)){
-#   X[, i] <- (X[, i] - mean_X[i]) / sd_X[i]
-# }
-# mean_y <- mean(y)
-# coef <- base::solve( (t(X)%*%X) + lambda*diag(dim(X)[2]) ) %*% t(X) %*% y
-# mean_y <- mean(y)
-# intercept <- mean_y - sum( (coef/sd_X) * mean_X)
-# 
-# a <- ridgereg(Petal.Length~Sepal.Width+Sepal.Length, iris)
-# b <- lm(Petal.Length~Sepal.Width+Sepal.Length, iris)
-# ridge <- lm.ridge(Petal.Length~Sepal.Width+Sepal.Length, iris, lambda=0)
 
 #' Coefficients for ridgereg object.
 #'
@@ -190,23 +149,3 @@ ridgereg$methods(
   })
 
 
-
-# Old
-# ridgereg$methods(
-#   show = function(){
-#     coef_temp <- coefficients/sd_X
-#     intercept <- mean_y - sum(coef_temp*mean_X) 
-#     coef_print <- c(intercept, coef_temp)
-#     names(coef_print) <- coef_names
-#     cat("Call:\n", 
-#         "linreg(formula = ", format(formula),
-#         ", data = ", format(input_arg_data), ")\n",
-#         "\n",
-#         "Coefficients:\n",
-#         sep="")
-#     base::print(round(coef_print,3))
-#   })
-
-
-# a <- ridgereg(Petal.Length~Species, iris, lambda=5)
-# b <- lm.ridge(Petal.Length~Species, iris, lambda=5)
