@@ -18,14 +18,14 @@ vignette: >
 
 This vignette show you how to do a simple prediction problem using 
 `ridgereg()` function.
-We are going to use the `caretc` package and `ridgereg()` function to create a predictive model for the BostonHousing data found in the `mlbench` package.
+We are going to use the `caret` package and `ridgereg()` function to create a predictive model for the BostonHousing data found in the `mlbench` package.
 
 # 1.2
 
 ## 1
 
 First we divide the BostonHousing data into a test and training dataset using the
-`caret` package (with the proportions 25% amd 75%).
+`caret` package (with the proportions 25% and 75%).
 
 
 ```{r}
@@ -36,6 +36,8 @@ library(bonuslabpackage)
 library(leaps)
 
 data(BostonHousing)
+# Set the seed for reproducibility
+set.seed(123)
 
 training_indices <- createDataPartition(BostonHousing$crim, p = 0.75, list = FALSE)
 
@@ -48,88 +50,56 @@ test_set <- BostonHousing[-training_indices, ]
 
 ## 2
 
-We fit a linear regression model and a fit a linear regression model with forward selection of covariates on the training dataset.
+We fit a linear regression model with all predictor variables and a fit a linear regression model with forward selection of covariates on the training dataset.
 
 
 ```{r}
-
-# Get the vector of predictor variable names
-predictor_vars <- names(train_set)[!names(train_set) %in% "crim"]
-
-
-# Initialize a list to store the models
-models <- list()
-
-# Iterate through different numbers of covariates (0 to n)
-for (i in 0:length(predictor_vars)) {
-  # Subset the predictors based on the current iteration
-  
-  if(i == 0) { # Use only intercept
-    
-    # using lm function when it is only intercept because caret cant handle that
-    model <- lm("crim ~ 1", data = train_set) 
-  
-    
-  } else {
-    
-     predictors_subset <- predictor_vars[0:i]
-     formula <- as.formula(paste("crim ~", paste(predictors_subset, collapse = "+")))
-     # Fit the model using caret::train
-     model <- train(formula, data = train_set, method = "lm")
-     
-  }
-  
-  # Store the model
-  models[[i+1]] <- model
-  
-}
+# Linear model with all predictor variables
+lin_mod <- lm(crim ~ ., data = train_set)
 
 
-# Find the model with the lowest AIC
-AIC_vec <- c()
-for(i in 1:length(models)) {
-  
-  if(i == 1) {
-   
-     AIC_vec[i] <- AIC(models[[i]])
-    
-  } else {
-    
-    AIC_vec[i] <- AIC(models[[i]]$finalModel)
-    
-  }
-  
-}
-lowest_aic_model <- models[[which.min(AIC_vec)]]
-
-
-# Modell med bara intercept
+# Linear model with only intercept
 model_intercept <- lm("crim ~ 1", data = train_set) 
-# Koden neda är enligt caret, men det funkar ej att hitta AIC. Så kör koden ovan.
-# model_intercept <- train(crim ~ ., data = train_set, 
-#                          method = "lm")
 
-# Forward selection, hittar att 2 variabler är bäst.
-# Algorithmen testar att lägga olika variabler först i modellen, 
-# en olika som andra variabel, osv. 
+# Forward selection algorithm for linear model.
 test_forward <- train(crim ~ ., data = train_set, 
-                      method = "leapForward")
+                      method = "leapForward",
+                      tuneGrid = data.frame(nvmax = 1:13)) # max all variables
 
-# nvmax visar att max 2 variabler var bäst. 
+# nvmax shows that 12 predictor variables were the max.
 test_forward
+```
 
-# Visar att den bästa modellen är att lägga till "rad" först och sen "lstat"
+
+The forward selection algorithm shows that 12 predictor variables is the best.
+The variables used and in what order are presented below.
+
+```{r}
+# Algorithm shows that the best model is to add predictor in the order as follows:
+# rad, lstat, b, and zn.
 summary(test_forward)
+```
 
-# Skattar modellen enligt forward selection.
-forward_mod <- lm(crim ~ rad + lstat, train_set, method="lm")
 
-# Om vi kolla på AIC så är den lägre för modellen med "rad + lstat" jämfört med 14 variabler.
+The best model is to add the predictor variables in the order: rad, lstat, b, zn, dis, indus, medv, nox, ptratio, chas, tax, and age. The only variable not used is rm.
+We estimate this linear model and compare it with the model with only the intercept by using AIC.
+
+```{r}
+formula <- as.formula("crim ~ rad + lstat + b + zn + dis + indus + 
+                    medv + nox + ptratio + chas + tax + age")
+
+# Forward-selection model used.
+forward_mod <- lm(formula, train_set, method="lm")
+
+# We use AIC to compare the model with only intercept with the forward-selection model.
 AIC(model_intercept)
-AIC_vec
 AIC(forward_mod)
 
 ```
+
+From the output the AIC for the forward selection model is lower than the model with intercept.
+This implies that the forward selection model is better with AIC as a criterion.
+
 
 ## 3
 
@@ -139,7 +109,7 @@ Now we evaluate the performance of this model on the training dataset.
 
 
 # Predict using the selected model on the training dataset
-train_predictions <- predict(lowest_aic_model, newdata = train_set)
+train_predictions <- predict(forward_mod, newdata = train_set)
 
 
 mae <- mean(abs(train_set$crim - train_predictions))
@@ -158,12 +128,10 @@ cat("R-squared (R²):", rsquared, "\n")
 
 ## 4
 
-Now we are going to a fit a ridge regression model using `ridgereg()` function to the training dataset for different values of λ.
+Now we are going to a fit a ridge regression model using `ridgereg()` function to the training dataset for different values of λ. The values of lambda chosen were: 1, 5, 10, 50, 200 and 10000.
 
 ```{r}
 lambda <- c(1, 5, 10, 50, 200)
-formula <- as.formula(paste("crim ~", paste(predictors_subset, collapse = "+")))
-# formula <- as.formula("crim ~ rad + lstat")
 ridge_1 <- ridgereg(formula, train_set, lambda=1)
 ridge_5 <- ridgereg(formula, train_set, lambda=5)
 ridge_10 <- ridgereg(formula, train_set, lambda=10)
@@ -179,7 +147,6 @@ ridge_10000 <- ridgereg(formula, train_set, lambda=10000)
 k_fold_index <- 
   c(rep(1,38), rep(2,38), rep(3,38), rep(4,38), rep(5,38),
     rep(6,38), rep(7,38), rep(8,38), rep(9,39), rep(10,39))
-formula <- as.formula(crim~rad+lstat)
 
 # 10-fold cross validation with different lambda values evaluating with RMSE.
 ten_fold_ridgereg <- function(k_fold_index,train_set,lambda){
@@ -192,7 +159,7 @@ ten_fold_ridgereg <- function(k_fold_index,train_set,lambda){
     test_data <- train_set[index, ]
     model <- ridgereg(formula, train_data, lambda=lambda)
     # 9 and 13 are variable "rad" and "lstat".
-    RMSE[i] <- sqrt(sum((test_data$crim - model$predict(test_data[,c(9,13)]))^2))
+    RMSE[i] <- sqrt(sum((test_data$crim - model$predict(test_data[,c(9,13,12,2,8,3,14,5,11,4,10,7)]))^2))
   }
   mean_RMSE <- mean(RMSE)
   return(mean_RMSE)
@@ -206,14 +173,30 @@ ten_fold_ridgereg(k_fold_index,train_set,200)
 ten_fold_ridgereg(k_fold_index,train_set,10000)
 ```
 
+From the 10-fold cross validation the model with the lowest RMSE is the model with lambda=200.
+
 ## 6
 
-```{r}
+We evaluate the performance of model with all predictor variables, the model with predictor varibles
+chosen with forward selection, and a ridge regression model with the same predictor variables at the forward selection on the testset.
 
+```{r}
+lm_RMSE <- sqrt(sum((test_set$crim - predict(lin_mod, test_set))^2))
+forward_RMSE <- sqrt(sum((test_set$crim - predict(forward_mod, test_set))^2))
+ridge_RMSE <- sqrt(sum((test_set$crim - ridge_200$predict(test_set[, c(9,13,12,2,8,3,14,5,11,4,10,7)]) )^2))
+lm_RMSE
+forward_RMSE
+ridge_RMSE
 
 ```
 
-
+We get that the RMSE is a lot higher on the testset compared to the RMSE for the trainset. 
+This implies that the models can be overfitted on trainset. Furthermore, the RMSE
+is lowest for the forward-selection model. This makes sense since the forward-selection
+has omitted the variable rm that did not appear to be able to predict crim. Interestingly
+the ridge model was worse on testset than the forward-selection model, the ridge model
+is supposed to regularise (be less overfitted on trainset) but it did not
+make an improvement.
 
 
 
@@ -323,8 +306,7 @@ resid_10000 <- validation_set$arr_delay - ridge_10000$predict(validation_set[ind
 RMSE_10000 <- sqrt(mean(resid_10000^2)) 
 
 RMSE <- c(RMSE_1, RMSE_5, RMSE_10, RMSE_50, RMSE_200, RMSE_10000)
-# Optimal lambda value found by this code:
-# which.min(RMSE)
+RMSE
 
 
 ```
