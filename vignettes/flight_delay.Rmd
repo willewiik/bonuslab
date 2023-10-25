@@ -1,8 +1,14 @@
 ---
-title: "Flight Delay"
-output: rmarkdown::html_vignette
+title: "Flight Delay""
+author: "Duc Tran and William Wiik"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    fig_caption: yes
+    toc: yes
+    toc_depth: 3
 vignette: >
-  %\VignetteIndexEntry{Flight Delay}
+  %\VignetteIndexEntry{Flight Delay"}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
