@@ -4,6 +4,8 @@
 #' from the dataset in the package nycflights13.
 #'
 #' @name visualize_airport_delays
+#' @import dplyr
+#' @import ggplot2
 #' @export visualize_airport_delays
 #' @return A ggplot visualising the mean delays.
 #' 
