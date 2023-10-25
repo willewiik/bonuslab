@@ -1,0 +1,146 @@
+---
+title: "Flight Delay"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Flight Delay}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup}
+library(bonuslabpackage)
+library(dplyr)
+library(caret)
+library(nycflights13)
+```
+
+# Introduction
+This vignette shows the prediction of the function `ridgereg()` from the package `bonuslabpackage` on flight data from the package `nycflights13`.
+
+# 1.2.1 Predictive modeling of flight delays using `ridgereg()`
+
+We read in the weather dataset and the flights dataset from the `nycflights13` package and select
+variables we believe to have a predictive value.
+
+```{r}
+
+ 
+flights <- nycflights13::flights
+weather <- nycflights13::weather
+
+# Nice variables
+flights <- flights %>%  select(origin, year, month, day, hour,
+                               dep_delay, arr_delay, distance)
+
+weather <- weather %>%  select(origin, year, month,
+                               day, hour, temp, wind_speed)
+  
+```
+
+
+## 2
+
+We add extra weather data (temp and wind_speed) from the weather dataset and create multiplicative interaction effects of temp and wind_speed.
+
+We also make the assumption that the response variable is arrival delay.
+
+
+```{r}
+
+# merge flights with weather
+merged_data <- flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>% 
+  mutate(interactive_temp_wind = temp * wind_speed) %>% 
+  na.omit() # remove Na's
+
+
+```
+
+
+## 3
+
+We use the `caret` package to divide the flight dataset into three sets: test, train and validation (with the proportions 5%, 80% and 15%).
+
+
+```{r}
+
+# Set the seed for reproducibility
+set.seed(123)
+
+train_indices <- createDataPartition(merged_data$arr_delay, p = 0.80, list = FALSE)
+train_set <- merged_data[train_indices, ]
+
+test_val_set <- merged_data[-train_indices, ]
+
+
+# 5% of 20% is 25%, thats why p = 0.25
+test_indices <- createDataPartition(test_val_set$arr_delay, p = 0.25, list = FALSE)
+
+test_set <- test_val_set[test_indices, ]
+validation_set <- test_val_set[-test_indices, ]
+
+
+```
+
+
+
+## 4
+
+We train ridge regressions models for different values of λ and evaluate the root mean squared error.
+The formula for the model is: "arr_delay ~ dep_delay + distance + temp + wind_speed + interactive_temp_wind".
+
+```{r}
+index <-c(6,8,9,10,11)
+predictors_subset <- colnames(merged_data)[index]
+formula <- as.formula(paste("arr_delay ~", paste(predictors_subset, collapse = "+")))
+
+ridge_1 <- ridgereg(formula, train_set, lambda=1)
+ridge_5 <- ridgereg(formula, train_set, lambda=5)
+ridge_10 <- ridgereg(formula, train_set, lambda=10)
+ridge_50 <- ridgereg(formula, train_set, lambda=50)
+ridge_200 <- ridgereg(formula, train_set, lambda=200)
+ridge_10000 <- ridgereg(formula, train_set, lambda=10000)
+
+
+resid_1 <- validation_set$arr_delay - ridge_1$predict(validation_set[index])
+RMSE_1 <- sqrt(mean(resid_1^2)) 
+
+resid_5 <- validation_set$arr_delay - ridge_5$predict(validation_set[index])
+RMSE_5 <- sqrt(mean(resid_5^2)) 
+
+resid_10 <- validation_set$arr_delay - ridge_10$predict(validation_set[index])
+RMSE_10 <- sqrt(mean(resid_10^2)) 
+
+resid_50 <- validation_set$arr_delay - ridge_50$predict(validation_set[index])
+RMSE_50 <- sqrt(mean(resid_50^2)) 
+
+resid_200 <- validation_set$arr_delay - ridge_200$predict(validation_set[index])
+RMSE_200 <- sqrt(mean(resid_200^2)) 
+
+resid_10000 <- validation_set$arr_delay - ridge_10000$predict(validation_set[index])
+RMSE_10000 <- sqrt(mean(resid_10000^2)) 
+
+RMSE <- c(RMSE_1, RMSE_5, RMSE_10, RMSE_50, RMSE_200, RMSE_10000)
+RMSE
+
+
+```
+
+We found that the optimal value for λ is 200.
+
+
+## 5
+
+We predict the test set here.
+
+```{r}
+ridge_mod <- ridgereg(formula, test_set, lambda=200)
+resid_mod <- test_set$arr_delay - ridge_mod$predict(test_set[index])
+RMSE_mod <- sqrt(mean(resid_mod^2)) 
+
+RMSE_mod  
+```
+
+
+The RMSE of ours predicted model is 17.99421.
+
