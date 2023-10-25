@@ -1,5 +1,5 @@
 ---
-title: "Flight Delay""
+title: "Flight Delay"
 author: "Duc Tran and William Wiik"
 date: "`r Sys.Date()`"
 output:
